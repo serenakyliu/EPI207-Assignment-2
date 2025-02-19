@@ -1,0 +1,568 @@
+---
+title: "EPI 207 Assignment 2"
+author: "Sonali Kamath, Serena Liu"
+output: html_document
+date: "10 Feb 2025"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#Loading Libraries
+```{r}
+getwd()
+library(haven)
+library(tidyverse)
+library(dplyr)
+library(labelled)
+```
+
+#Loading CHIS data
+```{r}
+adult_chis_2023 <- read_sas("C:/Users/sonal/Desktop/2023 Adult SAS/adult.sas7bdat") 
+```
+
+#Cleaning CHIS data
+```{r}
+#Select variables from original data
+clean_ogname_data <- adult_chis_2023 %>% 
+  #select variables of interest
+  select(SRAGE_P1, #age
+         SRSEX,   #gender
+         OMBSRR_P1, #race
+         BINGE30, #binge drinking
+         DISTRESS,#SPD
+         DSTRS_P1, #SPD (PUF 1 year recode)
+         DSTRS30, #likely SPD in past month
+         DSTRS12, #likely SPD in past year
+         AHEDC_P1,  #education 
+         WRKST_P1,   #work status
+         POVLL,   #poverty level
+         POVLL2_P1V2, #poverty level - numeric
+         SRTENR, #self-reported household tenure
+         AH44A, #used paid childcare in past month
+         MARIT,   #marital status - 3 cat
+         MARIT2,  #marital status - 4 cat
+         MARIT_45, #marital status - 45+
+         RAKEDW0, #weights
+         PROXY, #proxy interview
+         AF81, #needed help for emot/mntl or alc/drug problem in past year
+         FAMT4 #marital/parental status
+         )
+```
+
+```{r}
+#rename variables and create new ones
+renamed_data <- clean_ogname_data %>%
+#rename variables with more intuitive names
+  mutate(age           = SRAGE_P1, #age
+         gender        = SRSEX,   #gender
+         race          = OMBSRR_P1, #race
+         binge         = BINGE30, #Binge Drinking
+         spd           = DISTRESS,#SPD
+         spd_month     = DSTRS30, #SPD in past month
+         spd_year      = DSTRS12, #SPD in past year
+         edu           = AHEDC_P1,  #education 
+         emply_status  = WRKST_P1,   #work status
+         poverty       = POVLL,  #poverty
+         poverty_fpl   = POVLL2_P1V2, #poverty level - numeric
+         tenure        = SRTENR, #self-reported household tenure
+         childcare     = AH44A, #used paid childcare in past month
+         marital       = MARIT,   #marital status - 3 cat
+         marital2      = MARIT2,  #marital status - 4 cat
+         marital45     = MARIT_45, #marital status - 45+
+         weight        = RAKEDW0, #weights
+         proxy         = PROXY, #proxy interview
+         subuse_mental = AF81, #needed help for emot/mntl or alc/drug problem in past year
+         fam_type      = FAMT4,
+    
+         #create/edit variables to analyze
+         age_cat = case_when(
+          age >= 18 & age < 26 ~ "18–25 (reference)",
+          age >= 26 & age < 35 ~ "26–34",
+          age >= 35 & age < 45 ~ "35–44",
+          age >= 45 & age < 55 ~ "45-54",
+          age >= 55 & age < 65 ~ "55-64",
+          age >= 65 ~ "65+",
+          TRUE ~ as.character(NA)),
+         
+         gender = case_when(
+           gender == 1 ~ "Male",
+           gender == 2 ~ "Female",
+           TRUE ~ as.character(NA)),
+         
+         race = case_when(
+           race == 1 ~ "Hispanic",
+           race == 2 ~ "White, Non-Hispanic",
+           race == 3 ~ "African American, Non-Hispanic",
+           race == 4 ~ "American Indian/Alaskan Native, NH",
+           race == 5 ~ "Asian, Non-Hispanic",
+           race == 6 ~ "Other/Two or more races",
+           TRUE ~ as.character(NA)),
+         
+          binge = case_when(
+           binge == 1 ~ "Yes",
+           binge == 2 ~ "No",
+           TRUE ~ as.character(NA)),
+         
+         spd_lvl = case_when(
+           spd_month == 1 ~ "Acute SPD",
+           spd_month == 2 & spd_year == 1 ~ "Recent SPD",
+           spd_year == 2 ~ "No SPD",
+           TRUE ~ as.character(NA)),
+         
+         spd_month = case_when(
+           spd_month == 1 ~ "Yes",
+           spd_month ==2 ~ "No",
+           TRUE ~ as.character(NA)),
+         
+         spd_year = case_when(
+           spd_year == 1 ~ "Yes",
+           spd_year == 2 ~ "No",
+           TRUE ~ as.character(NA)),
+         
+         edu_lvl = case_when(
+           edu == 1 ~ "<High-school degree",
+           edu == 2 ~ "<High-school degree",
+           edu == 3 ~ "High-school graduate (reference)",
+           edu == 4 ~ "Some college",
+           edu == 5 ~ "College or more",
+           edu == 6 ~ "College or more",
+           edu == 7 ~ "College or more",
+           edu == 8 ~ "College or more",
+           edu == 9 ~ "College or more"),
+         
+          poverty_lvl = case_when(
+           poverty_fpl < 1 ~ "<100% FPL (reference)",
+           poverty_fpl >= 1 & poverty_fpl < 2 ~ "100%-199% FPL",
+           poverty_fpl >= 2 & poverty_fpl < 4 ~ "200%-399% FPL",
+           poverty_fpl >= 4 ~ "≥ 400% FPL",
+           TRUE ~ as.character(NA)),
+
+         marital_3cat =  case_when(
+          marital == 1 ~ "Married",
+          marital == 2 ~ "Other",
+          marital == 3 ~ "Never married",
+          TRUE ~ as.character(NA)),
+         
+        marital_4cat =  case_when(
+          marital2 == 1 ~ "Married",
+          marital2 == 2 ~ "Living with partner",
+          marital2 == 3 ~ "Wid/sep/div",
+          marital2 == 4 ~ "Never married",
+          TRUE ~ as.character(NA)), 
+        
+        marital_2cat =  case_when(
+          marital == 1 ~ "Married",
+          marital == 2 ~ "Not married",
+          marital == 3 ~ "Not married",
+          TRUE ~ as.character(NA)), 
+        
+        subuse_mental = case_when(
+          subuse_mental == 1 ~ "Yes",
+          subuse_mental == 2 ~ "No",
+          TRUE ~ as.character (NA)),
+        
+        kids = case_when(
+        fam_type == 1 ~ "No",
+        fam_type == 2 ~ "No",
+        fam_type == 3 ~ "Yes",
+        fam_type == 4 ~ "Yes",
+        TRUE ~ as.character (NA))
+        )
+```
+
+```{r}
+  
+clean_data <- renamed_data %>%
+  filter(!is.na(spd_lvl), !is.na(PROXY), !is.na(subuse_mental)) %>%
+  #select variables needed for analysis
+  #uncomment additional variables if desired
+  select(age_cat,
+         gender,   
+         race, 
+         spd_lvl,
+         spd_month,
+         spd_year,
+         edu_lvl,
+         poverty_lvl,
+         marital_3cat,
+         marital_2cat,
+         subuse_mental,
+         kids,          #has kids
+         binge,         #binge drinking
+         weight,
+         #childcare,    #used paid childcare in past month
+         #marital_4cat,   
+         #marital45,
+         #tenure,       #self-reported household tenure
+         #proxy
+         ) %>%
+  #variable labeling #fix(?)
+  set_variable_labels(
+    age_cat = "Age (5 cat)",
+    race = "Race/Ethnicity (6 cat)",
+    poverty_lvl = "Poverty level (4 cat)", 
+    spd_lvl = "Serious Psychological Distress (3 cat)",
+    edu_lvl = "Educational Attainment (3 cat)",
+    subuse_mental = "Needed Help for Substance/Mental Problem"
+  )
+```
+
+#Additional Packages
+```{r}
+#install.packages("ggtext")
+library(ggplot2)
+library(ggtext)
+#install.packages("table1")
+library(table1)
+library(tableone)
+library(gt)
+library(dplyr)
+library(gtsummary)
+library(flextable)
+
+library(labelled)
+library(codebook)
+library(tibble)
+#install.packages("writexl")
+library(writexl)
+library(here)
+library(magrittr)
+```
+
+#Data Dictionary
+```{r}
+#Data dictionary creation 
+datadic_var <- function(.data, var) {
+  list_var <- .data %>%
+    look_for(var) %>%
+    as_tibble() %>%
+    select(variable) %>%
+    as.matrix() %>%
+    as.vector()
+  binary_var <- .data %>%
+    dplyr::select(where(is_binary_var)) %>%
+    colnames()
+  cb <- .data %>%
+    select(all_of(list_var)) %>%
+    codebook::codebook_table() %>%
+    dplyr::rename(`Variable name` = name,
+                  Label = label,
+                  `Variable type` = data_type,
+                  #Values = value_labels,
+                  `Complete rate` = complete_rate) %>%
+    select(-c(n_missing, min, sd, median, 
+              max, mean, hist, contains("format"))) %>%
+    mutate(`Variable type` = 
+             case_when(`Variable type`=="haven_labelled" ~ "categorical",
+                       `Variable type`=="factor" ~ "categorical",
+                       `Variable type`=="numeric" ~ "continuous",
+                                       TRUE ~ `Variable type`),
+           `Variable type` = 
+             case_when(`Variable name` %in% binary_var~ "binary",
+                                       TRUE ~ `Variable type`),
+           n_unique = 
+             case_when(`Variable name` %in% binary_var ~ as.integer(2),
+                                TRUE ~ as.integer(n_unique)))
+  TF="value_labels" %in% colnames(cb)
+  if(TF==F){
+    cb %<>% mutate(
+      value_labels = case_when(`Variable name` %in% 
+                                 binary_var~ "1, 2",  TRUE ~ NA_character_)) %>%
+      as_tibble() %>%
+      select(`Variable name`, `Variable label`= Label,
+             `Variable type`,
+             n_unique)
+  } else {
+    cb %<>% mutate(
+      value_labels = case_when(`Variable name` %in% 
+                                 binary_var~ "1, 2", TRUE ~ value_labels)) %>%
+      as_tibble() %>%
+      select(`Variable name`, `Variable label`= Label,
+             `Variable type`,
+             `Value labels` = value_labels,
+             n_unique)
+  }
+}
+
+is_categorical_var <- function(var){
+  #(is.labelled(var) | is.factor(var) | is.character(var)) | (between(n_distinct(x[!is.na(x)]),3,20))
+  (between(n_distinct(var[!is.na(var)]),3,20))
+}
+is_binary_var <- function(var){
+  n_distinct(var[!is.na(var)])<=2
+}
+is_continous_var <- function(var){
+  if (is.labelled(var)) {
+    var = as.factor(var)
+  }
+  !(n_distinct(var[!is.na(var)])<=2 | is.factor(var))
+}
+
+datadic <- clean_data %>% datadic_var("")
+
+write_xlsx(datadic, here("tables", "Assignment2_dd.xlsx"))
+```
+
+#Codebook
+```{r}
+library(epiDisplay)
+library(readxl)
+library(dplyr)
+library(ggplot2)
+
+codebook <- function(data, var, categorical = TRUE, print.values = TRUE) {
+  # Ensure datadic contains the necessary columns
+  if (!("Variable name" %in% colnames(datadic)) | !("Variable label" %in% colnames(datadic))) {
+    stop("The required columns 'Variable name' or 'Variable label' are missing from datadic.")
+  }
+
+  # Pull the variable description
+  var_description <- datadic %>% 
+    filter(`Variable name` == var) %>% 
+    pull(`Variable label`)
+
+  # Check if 'Value labels' exists before pulling
+  if ("Value labels" %in% colnames(datadic)) {
+    var_values <- datadic %>% 
+      filter(`Variable name` == var) %>% 
+      pull(`Value labels`)
+  } else {
+    var_values <- NA
+  }
+
+  # Print out information to be included in the codebook
+  print(str_c(var, ": ", var_description))
+  if (!is.na(var_values) & print.values) {
+    print(var_values)
+  }
+
+  if (categorical) {
+    print(str_c("Frequency table of ", var))
+    tab1(data[[var]], graph = FALSE, cum.percent = TRUE) %>% print()
+
+    # Generate a bar chart
+    print(str_c("Generating frequency chart for ", var))
+    ggplot(data, aes(x = as.factor(.data[[var]]))) +
+      geom_bar(fill = "grey", color = "black") +
+      labs(title = paste("Frequency of", var), x = var, y = "Frequency") +
+      theme_minimal() -> plot
+    print(plot)
+
+  } else {
+    x <- data[[var]] %>% as.vector()
+    na_count <- sum(is.na(x))
+    na_perc <- round(na_count / length(x), digits = 3)
+    print(str_c("NA Frequency: ", na_count, " (", 100 * na_perc, "%)"))
+
+    # Generate a histogram for continuous variables
+    print(str_c("Generating histogram for ", var))
+    ggplot(data, aes(x = .data[[var]])) +
+      geom_histogram(binwidth = 5, fill = "grey", color = "black") +
+      labs(title = paste("Histogram of", var), x = var, y = "Frequency") +
+      theme_minimal() -> plot
+    print(plot)
+  }
+
+  cat("\n\n")
+}
+
+codebook(clean_data, "age_cat", categorical = T)
+codebook(clean_data, "gender", categorical = T)
+codebook(clean_data, "race", categorical = T)
+codebook(clean_data, "spd_lvl", categorical = T)
+codebook(clean_data, "spd_month", categorical = T)
+codebook(clean_data, "spd_year", categorical = T)
+codebook(clean_data, "edu_lvl", categorical = T)
+codebook(clean_data, "poverty_lvl", categorical = T)
+codebook(clean_data, "marital_3cat", categorical = T)
+codebook(clean_data, "marital_2cat", categorical = T)
+codebook(clean_data, "subuse_mental", categorical = T)
+codebook(clean_data, "kids", categorical = T)
+codebook(clean_data, "binge", categorical = T)
+
+```
+
+#Table one
+```{r}
+listVars <- c("age_cat", "gender", "race","spd_lvl","spd_month","spd_year","edu_lvl","poverty_lvl", "subuse_mental", "kids","binge")
+catVars <- c("age_cat", "gender", "race","spd_lvl","spd_month","spd_year","edu_lvl","poverty_lvl", "subuse_mental", "kids","binge")  
+table1.overall <- CreateTableOne(vars = listVars, data = clean_data, factorVars = catVars,includeNA = TRUE)
+a <- print(table1.overall, showAllLevels = TRUE, formatOptions = list(big.mark = ","))
+write.csv(a, "~/Downloads/table1.csv")
+
+# stratified by marital status - 2 categories
+table1.stratified <- CreateTableOne(vars = listVars, strata = "marital_2cat", data = clean_data, factorVars = catVars, includeNA = TRUE)
+b <- print(table1.stratified, showAllLevels = TRUE, formatOptions = list(big.mark = ","))
+write.csv(b, "~/Downloads/table1_stratified.csv")
+
+
+
+```
+
+
+#Table two: marital - 2 cat
+## spd in the past month: crude
+```{r}
+clean_data$spd_month_recode <- ifelse(clean_data$spd_month == "Yes", 1, 0)
+clean_data$spd_month_recode <- as.numeric(clean_data$spd_month_recode)
+mod.crude <- glm(
+  spd_month_recode ~ marital_2cat,
+  data = clean_data,
+  family = binomial(),
+)
+coef_summary <- summary(mod.crude)$coefficients
+or <- exp(coef(mod.crude)) 
+ci <- exp(confint(mod.crude))  
+for (i in seq_along(or)) {
+  cat(names(or)[i], ": ", sprintf("%.2f (%.2f, %.2f)", or[i], ci[i, 1], ci[i, 2]), "\n")
+}
+```
+
+## spd in the past month: adjusted
+```{r}
+mod.adj <- glm(
+  spd_month_recode ~ marital_2cat + age_cat + gender + race + edu_lvl + poverty_lvl + subuse_mental,
+  data = clean_data,
+  family = binomial(),
+)
+
+coef_summary <- summary(mod.adj)$coefficients
+or <- exp(coef(mod.adj)) 
+ci <- exp(confint(mod.adj))  
+for (i in seq_along(or)) {
+  cat(names(or)[i], ": ", sprintf("%.2f (%.2f, %.2f)", or[i], ci[i, 1], ci[i, 2]), "\n")
+}
+
+```
+
+
+# spd in the past year - crude
+```{r}
+clean_data$spd_year_recode <- ifelse(clean_data$spd_year == "Yes", 1, 0)
+clean_data$spd_year_recode <- as.numeric(clean_data$spd_year_recode)
+
+mod.crude <- glm(
+  spd_year_recode ~ marital_2cat,
+  data = clean_data,
+  family = binomial(),
+)
+coef_summary <- summary(mod.crude)$coefficients
+or <- exp(coef(mod.crude)) 
+ci <- exp(confint(mod.crude))  
+for (i in seq_along(or)) {
+  cat(names(or)[i], ": ", sprintf("%.2f (%.2f, %.2f)", or[i], ci[i, 1], ci[i, 2]), "\n")
+}
+
+```
+
+
+# spd in the past year - adjusted
+```{r}
+clean_data$spd_year_recode <- ifelse(clean_data$spd_year == "Yes", 1, 0)
+clean_data$spd_year_recode <- as.numeric(clean_data$spd_year_recode)
+
+mod.adj <- glm(
+  spd_year_recode ~ marital_2cat + age_cat + gender + race + edu_lvl + poverty_lvl + subuse_mental,
+  data = clean_data,
+  family = binomial(),
+)
+
+coef_summary <- summary(mod.adj)$coefficients
+or <- exp(coef(mod.adj)) 
+ci <- exp(confint(mod.adj))  
+for (i in seq_along(or)) {
+  cat(names(or)[i], ": ", sprintf("%.2f (%.2f, %.2f)", or[i], ci[i, 1], ci[i, 2]), "\n")
+}
+
+```
+#Sensitivity: marital - 3 cat
+## spd in the past month: crude
+```{r}
+clean_data$spd_month_recode <- ifelse(clean_data$spd_month == "Yes", 1, 0)
+clean_data$spd_month_recode <- as.numeric(clean_data$spd_month_recode)
+
+mod.crude <- glm(
+  spd_month_recode ~ marital_3cat,
+  data = clean_data,
+  family = binomial(),
+)
+coef_summary <- summary(mod.crude)$coefficients
+or <- exp(coef(mod.crude)) 
+ci <- exp(confint(mod.crude))  
+for (i in seq_along(or)) {
+  cat(names(or)[i], ": ", sprintf("%.2f (%.2f, %.2f)", or[i], ci[i, 1], ci[i, 2]), "\n")
+}
+```
+
+## spd in the past month: adjusted
+```{r}
+mod.adj <- glm(
+  spd_month_recode ~ marital_3cat + age_cat + gender + race + edu_lvl + poverty_lvl + subuse_mental,
+  data = clean_data,
+  family = binomial(),
+)
+
+coef_summary <- summary(mod.adj)$coefficients
+or <- exp(coef(mod.adj)) 
+ci <- exp(confint(mod.adj))  
+for (i in seq_along(or)) {
+  cat(names(or)[i], ": ", sprintf("%.2f (%.2f, %.2f)", or[i], ci[i, 1], ci[i, 2]), "\n")
+}
+
+```
+
+# spd in the past year - crude
+```{r}
+clean_data$spd_year_recode <- ifelse(clean_data$spd_year == "Yes", 1, 0)
+clean_data$spd_year_recode <- as.numeric(clean_data$spd_year_recode)
+
+mod.crude <- glm(
+  spd_year_recode ~ marital_3cat,
+  data = clean_data,
+  family = binomial(),
+)
+coef_summary <- summary(mod.crude)$coefficients
+or <- exp(coef(mod.crude)) 
+ci <- exp(confint(mod.crude))  
+for (i in seq_along(or)) {
+  cat(names(or)[i], ": ", sprintf("%.2f (%.2f, %.2f)", or[i], ci[i, 1], ci[i, 2]), "\n")
+}
+
+```
+# spd in the past year - adjusted
+```{r}
+clean_data$spd_year_recode <- ifelse(clean_data$spd_year == "Yes", 1, 0)
+clean_data$spd_year_recode <- as.numeric(clean_data$spd_year_recode)
+
+mod.adj <- glm(
+  spd_year_recode ~ marital_3cat + age_cat + gender + race + edu_lvl + poverty_lvl + subuse_mental,
+  data = clean_data,
+  family = binomial(),
+)
+
+coef_summary <- summary(mod.adj)$coefficients
+or <- exp(coef(mod.adj)) 
+ci <- exp(confint(mod.adj))  
+for (i in seq_along(or)) {
+  cat(names(or)[i], ": ", sprintf("%.2f (%.2f, %.2f)", or[i], ci[i, 1], ci[i, 2]), "\n")
+}
+
+```
+# cases number
+```{r}
+tab1 <- table(clean_data$spd_month, clean_data$marital_2cat, 
+             dnn = c("SPD last month", "Marital 2 Cat")) ;tab1
+
+tab2 <- table(clean_data$spd_year, clean_data$marital_2cat, 
+             dnn = c("SPD last year", "Marital 2 Cat")) ; tab2
+
+tab3 <- table(clean_data$spd_month, clean_data$marital_3cat, 
+             dnn = c("SPD last month", "Marital 3 Cat")) ;tab3
+
+tab4 <- table(clean_data$spd_year, clean_data$marital_3cat, 
+             dnn = c("SPD last year", "Marital 3 Cat")) ;tab4
+
+```
