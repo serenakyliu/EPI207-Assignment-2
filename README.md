@@ -15,14 +15,18 @@ Data Source
 
 Study Sample
 ●	Total unweighted sample: 21,655 non-institutionalized adults after excluding individuals who were frail/ill and 65 or over.
+
 ●	The study population was categorized into married and unmarried groups, and a sensitivity analysis using a tertiary classification of marital status was conducted.
+
 Variables and Definitions
 Outcome Variable
 ●	Serious Psychological Distress (SPD)
 ○	Measured using the K6 scale, a validated screening tool for nonspecific psychological distress.
 ○	SPD was assessed over two timeframes:
 ■	SPD in the past month
+
 ■	SPD in the past year
+
 Exposure Variable
 ●	Marital Status
 ○	Binary Classification:
@@ -32,20 +36,31 @@ Exposure Variable
 ■	Married
 ■	Never married
 ■	Other (living with partner, widowed, separated, or divorced)
+
 Covariates
 The following covariates were included in the logistic regression models:
+
 ●	Age (categorized as 18–25 [reference], 26–34, 35–44, 45–54, 55–64, 65+)
+
 ●	Gender (male, female [reference])
+
 ●	Race/Ethnicity (Hispanic, Non-Hispanic White, Non-Hispanic African American, Non-Hispanic American Indian/Alaskan Native, Non-Hispanic Asian, Other/two or more races)
+
 ●	Education (less than high school, high school graduate, some college, college or more)
+
 ●	Poverty Level (categorized as <100% FPL, 100%-199% FPL, 200%-399% FPL, ≥400% FPL)
+
 ●	Substance Use and Mental Health (whether the respondent needed help for emotional/mental or alcohol/drug problems in the past year)
+
 Statistical Analysis
 ●	Software Used: RStudio 4.0.2
+
 ●	Main Analysis: Logistic regression models estimating the association between marital status and SPD.
 ○	Crude models: Unadjusted odds ratios (PORs) for SPD by marital status.
 ○	Adjusted models: PORs controlling for age, gender, race/ethnicity, education, poverty, and substance use.
+
 ●	Sensitivity Analysis: Logistic regression models using the tertiary classification of marital status.
+
 Steps to Reproduce the Study
 1.	Obtain the Data: Download the 2023 CHIS dataset from the CHIS website.
 2.	Data Cleaning & Preprocessing:
