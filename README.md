@@ -2,11 +2,17 @@
 Overview
 This document provides step-by-step instructions to reproduce the study examining the association between marital status and serious psychological distress (SPD) using the 2023 California Health Interview Survey (CHIS) dataset. The study employs logistic regression models to assess the impact of marital status while adjusting for key sociodemographic and behavioral factors.
 Data Source
+
 ●	The dataset used in this study is from the California Health Interview Survey (CHIS) 2023.
+
 ●	The data includes information from approximately 20,000 households in California, collected via web and telephone interviews.
+
 ●	The survey is conducted in multiple languages and covers children, adolescents, and adults.
+
 ●	One adult per household is randomly selected to participate.
+
 ●	Data can be accessed from the CHIS website: https://healthpolicy.ucla.edu/chis
+
 Study Sample
 ●	Total unweighted sample: 21,655 non-institutionalized adults after excluding individuals who were frail/ill and 65 or over.
 ●	The study population was categorized into married and unmarried groups, and a sensitivity analysis using a tertiary classification of marital status was conducted.
