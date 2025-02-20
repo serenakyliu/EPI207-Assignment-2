@@ -1,6 +1,6 @@
 ---
 title: "EPI 207 Assignment 2"
-author: "Sonali Kamath, Serena Liu"
+author: ""
 output: html_document
 date: "10 Feb 2025"
 ---
